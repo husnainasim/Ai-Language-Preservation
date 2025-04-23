@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+  //output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String           @id @default(uuid())
+  clerkUserId               String           @unique
+  email                     String           @unique
+  name                      String?
+  imageUrl                  String?
+  role                      Role
+  bio                       String?
+  nativeLanguage            String?
+  preferredLanguages        String[]
+  learningGoals             String?
+  timeZone                  String?
+  availability              Json?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
+  uploadedAudioSamples      AudioSample[]    @relation("UploaderAudioSamples")
+  communityMatchesAsMatched CommunityMatch[] @relation("CommunityMatchesAsMatched")
+  communityMatches          CommunityMatch[] @relation("CommunityMatches")
+  uploadedGrammarRules      GrammarRule[]    @relation("UploaderGrammarRules")
+  progressRecords           UserProgress[]
+  uploadedWordLists         WordList[]       @relation("UploaderWordLists")
+}
+
+model Language {
+  id                String                     @id @default(uuid())
+  name              String
+  description       String?
+  region            String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  audioSamples      AudioSample[]
+  grammarRules      GrammarRule[]
+  retentionForecast LanguageRetentionForecast?
+  lessons           Lesson[]
+  wordLists         WordList[]
+}
+
+model WordList {
+  id           String   @id @default(uuid())
+  languageId   String
+  words        Json
+  uploadedById String
+  createdAt    DateTime @default(now())
+  language     Language @relation(fields: [languageId], references: [id])
+  uploadedBy   User     @relation("UploaderWordLists", fields: [uploadedById], references: [id])
+}
+
+model GrammarRule {
+  id           String   @id @default(uuid())
+  languageId   String
+  rule         String
+  examples     Json?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  language     Language @relation(fields: [languageId], references: [id])
+  uploadedBy   User     @relation("UploaderGrammarRules", fields: [uploadedById], references: [id])
+}
+
+model AudioSample {
+  id            String   @id @default(uuid())
+  languageId    String
+  url           String
+  transcription String?
+  uploadedById  String
+  createdAt     DateTime @default(now())
+  language      Language @relation(fields: [languageId], references: [id])
+  uploadedBy    User     @relation("UploaderAudioSamples", fields: [uploadedById], references: [id])
+}
+
+model Lesson {
+  id              String         @id @default(uuid())
+  languageId      String
+  title           String
+  content         String
+  lessonType      String
+  flashcards      Json
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  language        Language       @relation(fields: [languageId], references: [id])
+  progressRecords UserProgress[]
+
+  @@index([languageId])
+}
+
+model UserProgress {
+  id           String   @id @default(uuid())
+  userId       String
+  lessonId     String
+  progress     Float
+  lastActivity DateTime @default(now())
+  createdAt    DateTime @default(now())
+  lesson       Lesson   @relation(fields: [lessonId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model CommunityMatch {
+  id            String   @id @default(uuid())
+  userId        String
+  matchedUserId String
+  matchReason   String?
+  matchedAt     DateTime @default(now())
+  matchedUser   User     @relation("CommunityMatchesAsMatched", fields: [matchedUserId], references: [id])
+  user          User     @relation("CommunityMatches", fields: [userId], references: [id])
+}
+
+model LanguageRetentionForecast {
+  id                     String   @id @default(uuid())
+  languageId             String   @unique
+  retentionCurve         Json
+  suggestedReinforcement String?
+  createdAt              DateTime @default(now())
+  language               Language @relation(fields: [languageId], references: [id])
+}
+
+enum Role {
+  LINGUIST
+  LEARNER
+}
