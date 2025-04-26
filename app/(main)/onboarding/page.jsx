@@ -7,7 +7,7 @@ export default async function OnboardingPage() {
   // Check if user is already onboarded
   const { isOnboarded } = await getUserOnboardingStatus();
 
-  if (!isOnboarded) {
+  if (isOnboarded) {
     redirect("/dashboard");
   }
 

@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  //output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -9,9 +8,9 @@ datasource db {
 }
 
 model User {
-  id                        String           @id @default(uuid())
-  clerkUserId               String           @unique
-  email                     String           @unique
+  id                        String            @id @default(uuid())
+  clerkUserId               String            @unique
+  email                     String            @unique
   name                      String?
   imageUrl                  String?
   role                      Role
@@ -21,14 +20,15 @@ model User {
   learningGoals             String?
   timeZone                  String?
   availability              Json?
-  createdAt                 DateTime         @default(now())
-  updatedAt                 DateTime         @updatedAt
-  uploadedAudioSamples      AudioSample[]    @relation("UploaderAudioSamples")
-  communityMatchesAsMatched CommunityMatch[] @relation("CommunityMatchesAsMatched")
-  communityMatches          CommunityMatch[] @relation("CommunityMatches")
-  uploadedGrammarRules      GrammarRule[]    @relation("UploaderGrammarRules")
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+  uploadedAudioSamples      AudioSample[]     @relation("UploaderAudioSamples")
+  communityMatchesAsMatched CommunityMatch[]  @relation("CommunityMatchesAsMatched")
+  communityMatches          CommunityMatch[]  @relation("CommunityMatches")
+  uploadedGrammarRules      GrammarRule[]     @relation("UploaderGrammarRules")
+  languageInsights          LanguageInsight[]
   progressRecords           UserProgress[]
-  uploadedWordLists         WordList[]       @relation("UploaderWordLists")
+  uploadedWordLists         WordList[]        @relation("UploaderWordLists")
 }
 
 model Language {
@@ -40,6 +40,7 @@ model Language {
   updatedAt         DateTime                   @updatedAt
   audioSamples      AudioSample[]
   grammarRules      GrammarRule[]
+  languageInsights  LanguageInsight[]
   retentionForecast LanguageRetentionForecast?
   lessons           Lesson[]
   wordLists         WordList[]
@@ -120,6 +121,23 @@ model LanguageRetentionForecast {
   suggestedReinforcement String?
   createdAt              DateTime @default(now())
   language               Language @relation(fields: [languageId], references: [id])
+}
+
+model LanguageInsight {
+  id                  String    @id @default(uuid())
+  languageId          String
+  learningDifficulty  String
+  preservationStatus  String
+  availableResources  Json
+  activeLearnersCount Int
+  nativeSpeakersCount Int
+  lastUpdated         DateTime  @default(now())
+  nextUpdate          DateTime
+  userId              String?
+  language            Language? @relation(fields: [languageId], references: [id])
+  User                User?     @relation(fields: [userId], references: [id])
+
+  @@index([languageId])
 }
 
 enum Role {
