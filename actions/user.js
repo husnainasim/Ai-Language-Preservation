@@ -11,24 +11,25 @@ export async function updateUser(data) {
   // If no user ID exists, user is not authenticated
   if (!userId) throw new Error("Unauthorized");
 
-  // Input validation
-  if (!data) throw new Error("No data provided");
-  if (data.nativeLanguage && typeof data.nativeLanguage !== "string") {
-    throw new Error("Invalid native language format");
-  }
-  if (data.preferredLanguages && !Array.isArray(data.preferredLanguages)) {
-    throw new Error("Preferred languages must be an array");
-  }
-  if (data.role && !["LEARNER", "LINGUIST", "ADMIN"].includes(data.role)) {
-    throw new Error("Invalid role specified");
-  }
+  // // Input validation
+  // if (!data) throw new Error("No data provided");
+  // if (data.nativeLanguage && typeof data.nativeLanguage !== "string") {
+  //   throw new Error("Invalid native language format");
+  // }
+  // if (data.preferredLanguages && !Array.isArray(data.preferredLanguages)) {
+  //   throw new Error("Preferred languages must be an array");
+  // }
+  // if (data.role && !["LEARNER", "LINGUIST"].includes(data.role)) {
+  //   throw new Error("Invalid role specified");
+  // }
 
   // Find the user in our database using their Clerk ID
+ 
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
-    include: {
-      languageInsights: true,
-    },
+    // include: {
+    //   languageInsights: true,
+    // },
   });
 
   // If user doesn't exist in our database, throw error
@@ -45,13 +46,26 @@ export async function updateUser(data) {
       async (tx) => {
         let languageInsight;
 
-        // Only process language insights if native language is being updated
-        if (
-          data.nativeLanguage &&
-          data.nativeLanguage !== user.nativeLanguage
-        ) {
-          // First check if language insights exist
-          languageInsight = await tx.languageInsight.findUnique({
+        // // Only process language insights if native language is being updated
+        // if (
+        //   data.nativeLanguage &&
+        //   data.nativeLanguage !== user.nativeLanguage
+        // ) {
+        //   // First verify the language exists
+        //   const language = await tx.language.findUnique({
+        //     where: {
+        //       id: data.nativeLanguage,
+        //     },
+        //   });
+
+        //   if (!language) {
+        //     throw new Error(
+        //       `Language with ID ${data.nativeLanguage} not found`
+        //     );
+        //   }
+
+          // Then check if language insights exist
+          languageInsight = await tx.languageInsight.findFirst({
             where: {
               languageId: data.nativeLanguage,
             },
@@ -61,7 +75,7 @@ export async function updateUser(data) {
           if (!languageInsight) {
             try {
               const insights = await generateAIInsights({
-                id: data.nativeLanguage,
+                id: data.nativeLanguage, // This passes the native language ID to the generateAIInsights function
               });
 
               if (!insights) {
@@ -70,16 +84,18 @@ export async function updateUser(data) {
 
               languageInsight = await tx.languageInsight.create({
                 data: {
-                  languageId: data.nativeLanguage,
-                  userId: user.id,
-                  learningDifficulty: insights.learningDifficulty,
-                  preservationStatus: insights.preservationStatus,
-                  availableResources: insights.availableResources,
-                  activeLearnersCount:
-                    insights.communityMetrics.activeLearnersCount,
-                  nativeSpeakersCount:
-                    insights.communityMetrics.nativeSpeakersCount,
-                  lastUpdated: new Date(),
+                  // languageId: data.nativeLanguage,
+                  language: data.language,
+                  ...insights,
+                  // userId: user.id,
+                  // learningDifficulty: insights.learningDifficulty,
+                  // preservationStatus: insights.preservationStatus,
+                  // availableResources: insights.availableResources,
+                  // activeLearnersCount:
+                  //   insights.communityMetrics.activeLearnersCount,
+                  // nativeSpeakersCount:
+                  //   insights.communityMetrics.nativeSpeakersCount,
+                  // lastUpdated: new Date(),
                   nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Update weekly
                 },
               });
@@ -91,16 +107,16 @@ export async function updateUser(data) {
             }
           }
 
-          // Delete old language insights if they exist
-          if (user.nativeLanguage && user.languageInsights?.length > 0) {
-            await tx.languageInsight.deleteMany({
-              where: {
-                userId: user.id,
-                languageId: user.nativeLanguage,
-              },
-            });
-          }
-        }
+          // // Delete old language insights if they exist
+          // if (user.nativeLanguage && user.languageInsights?.length > 0) {
+          //   await tx.languageInsight.deleteMany({
+          //     where: {
+          //       userId: user.id,
+          //       languageId: user.nativeLanguage,
+          //     },
+          //   });
+          // }
+        // }
 
         // Prepare update data with type safety
         const updateData = {
@@ -122,9 +138,9 @@ export async function updateUser(data) {
             id: user.id,
           },
           data: updateData,
-          include: {
-            languageInsights: true,
-          },
+          // include: {
+          //   languageInsights: true,
+          // },
         });
 
         return { updatedUser, languageInsight };
@@ -137,7 +153,7 @@ export async function updateUser(data) {
     );
 
     revalidatePath("/");
-    return result.updatedUser;
+    return result.user;
   } catch (error) {
     console.error("Error updating user:", error);
     if (error.code === "P2002") {
@@ -239,3 +255,4 @@ export async function getUserMatches() {
     throw new Error("Failed to fetch matches");
   }
 }
+

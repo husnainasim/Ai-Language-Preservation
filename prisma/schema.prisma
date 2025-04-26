@@ -8,36 +8,39 @@ datasource db {
 }
 
 model User {
-  id                        String            @id @default(uuid())
-  clerkUserId               String            @unique
-  email                     String            @unique
-  name                      String?
-  imageUrl                  String?
-  role                      Role
-  bio                       String?
-  nativeLanguage            String?
-  preferredLanguages        String[]
-  learningGoals             String?
-  timeZone                  String?
-  availability              Json?
-  createdAt                 DateTime          @default(now())
-  updatedAt                 DateTime          @updatedAt
+  id                 String           @id @default(uuid())
+  clerkUserId        String           @unique
+  email              String           @unique
+  name               String?
+  imageUrl           String?
+  role               Role
+  bio                String?
+  nativeLanguage     String?          @unique
+  /// one-to-one: each user’s nativeLanguage maps to exactly one LanguageInsight
+  languageInsight    LanguageInsight? @relation(name: "UserNativeInsight", fields: [nativeLanguage], references: [languageId])
+  preferredLanguages String[]
+  learningGoals      String?
+  timeZone           String?
+  availability       Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
   uploadedAudioSamples      AudioSample[]     @relation("UploaderAudioSamples")
   communityMatchesAsMatched CommunityMatch[]  @relation("CommunityMatchesAsMatched")
   communityMatches          CommunityMatch[]  @relation("CommunityMatches")
   uploadedGrammarRules      GrammarRule[]     @relation("UploaderGrammarRules")
-  languageInsights          LanguageInsight[]
   progressRecords           UserProgress[]
   uploadedWordLists         WordList[]        @relation("UploaderWordLists")
 }
 
 model Language {
-  id                String                     @id @default(uuid())
+  id                String                   @id @default(uuid())
   name              String
   description       String?
   region            String?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
   audioSamples      AudioSample[]
   grammarRules      GrammarRule[]
   languageInsights  LanguageInsight[]
@@ -125,7 +128,7 @@ model LanguageRetentionForecast {
 
 model LanguageInsight {
   id                  String    @id @default(uuid())
-  languageId          String
+  languageId          String    @unique
   learningDifficulty  String
   preservationStatus  String
   availableResources  Json
@@ -133,12 +136,15 @@ model LanguageInsight {
   nativeSpeakersCount Int
   lastUpdated         DateTime  @default(now())
   nextUpdate          DateTime
-  userId              String?
-  language            Language? @relation(fields: [languageId], references: [id])
-  User                User?     @relation(fields: [userId], references: [id])
+
+  /// back-relation only—no fields/references specified here
+  user                User?     @relation(name: "UserNativeInsight")
+  language            Language  @relation(fields: [languageId], references: [id])
 
   @@index([languageId])
 }
+
+// … all your other models (WordList, GrammarRule, AudioSample, Lesson, UserProgress, CommunityMatch, LanguageRetentionForecast) remain unchanged …
 
 enum Role {
   LINGUIST

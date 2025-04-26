@@ -8,59 +8,25 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export const generateAIInsights = async (language) => {
-  if (!language || !language.id) {
-    throw new Error("Language ID is required");
+  if (!language || !language.name) {
+    throw new Error("Language name is required");
   }
 
-  try {
-    // Count active learners and native speakers
-    const userStats = await db.user.groupBy({
-      by: ["role"],
-      where: {
-        OR: [
-          {
-            nativeLanguage: {
-              equals: language.id,
-            },
-          },
-          {
-            preferredLanguages: {
-              has: language.id,
-            },
-          },
-        ],
-      },
-      _count: {
-        _all: true,
-      },
-    });
-
-    const activeLearnersCount =
-      userStats.find((stat) => stat.role === "LEARNER")?._count._all ?? 0;
-    const nativeSpeakersCount =
-      userStats.find((stat) => stat.role === "LINGUIST")?._count._all ?? 0;
-
-    // Create basic insights based on user statistics
-    const insights = {
-      learningDifficulty: "Medium", // Default value
-      preservationStatus: nativeSpeakersCount === 0 ? "Critical" : "Endangered",
-      availableResources: {
-        audioSamples: 0,
-        grammarRules: 0,
-        wordLists: 0,
-        lessons: 0,
-      },
-      communityMetrics: {
-        activeLearnersCount,
-        nativeSpeakersCount,
-      },
-    };
-
-    return insights;
-  } catch (error) {
-    console.error("Error generating insights:", error);
-    throw error;
-  }
+  const prompt = `
+    Analyze the endangered language "${language.name}" and provide insights in ONLY the following JSON format without any additional text:
+    {
+      "learningDifficulty": "string",
+      "preservationStatus": "string",
+      "availableResources": ["string", ...],
+      "activeLearnersCount": number,
+      "nativeSpeakersCount": number
+    }
+  `;
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.text();
+  const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+  return JSON.parse(cleanedText);
 };
 
 export async function getLanguageInsights() {
@@ -73,13 +39,11 @@ export async function getLanguageInsights() {
     // First get the user with their preferred/native language info
     const user = await db.user.findUnique({
       where: { clerkUserId: userId },
-      select: {
-        id: true,
-        nativeLanguage: true,
-        preferredLanguages: true,
-        languageInsights: {
-          include: {
-            language: true,
+      include: {
+        nativeLanguageRef: {
+          select: {
+            name: true,
+            insight: true,
           },
         },
       },
@@ -89,42 +53,38 @@ export async function getLanguageInsights() {
       throw new Error("User not found");
     }
 
-    // Get the relevant language - either native or first preferred
-    const targetLanguageId =
-      user.nativeLanguage ||
-      (user.preferredLanguages && user.preferredLanguages[0]);
+    // Get the relevant language name
+    const targetLanguage = user.nativeLanguageRef;
 
     // If no language is set, return null instead of throwing error
-    if (!targetLanguageId) {
+    if (!targetLanguage) {
       return null;
     }
 
-    // Find existing insight for this language
-    const existingInsight = user.languageInsights?.find(
-      (insight) => insight.languageId === targetLanguageId
-    );
-
     // If insight exists and is not due for update, return it
-    if (existingInsight && existingInsight.nextUpdate > new Date()) {
-      return existingInsight;
+    if (
+      targetLanguage.insight &&
+      targetLanguage.insight.nextUpdate > new Date()
+    ) {
+      return targetLanguage.insight;
     }
 
     // Generate new insights
-    const insights = await generateAIInsights({ id: targetLanguageId });
+    const insights = await generateAIInsights({ name: targetLanguage.name });
 
     // Upsert the insights
     const languageInsight = await db.languageInsight.upsert({
       where: {
-        languageId: targetLanguageId,
+        language: targetLanguage.name,
       },
       create: {
-        languageId: targetLanguageId,
+        language: targetLanguage.name,
         userId: user.id,
         learningDifficulty: insights.learningDifficulty,
         preservationStatus: insights.preservationStatus,
         availableResources: insights.availableResources,
-        activeLearnersCount: insights.communityMetrics.activeLearnersCount,
-        nativeSpeakersCount: insights.communityMetrics.nativeSpeakersCount,
+        activeLearnersCount: insights.activeLearnersCount,
+        nativeSpeakersCount: insights.nativeSpeakersCount,
         lastUpdated: new Date(),
         nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Update weekly
       },
@@ -132,8 +92,8 @@ export async function getLanguageInsights() {
         learningDifficulty: insights.learningDifficulty,
         preservationStatus: insights.preservationStatus,
         availableResources: insights.availableResources,
-        activeLearnersCount: insights.communityMetrics.activeLearnersCount,
-        nativeSpeakersCount: insights.communityMetrics.nativeSpeakersCount,
+        activeLearnersCount: insights.activeLearnersCount,
+        nativeSpeakersCount: insights.nativeSpeakersCount,
         lastUpdated: new Date(),
         nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Update weekly
       },
