@@ -16,30 +16,31 @@ model User {
   role               Role
   bio                String?
   nativeLanguage     String?          @unique
-  /// one-to-one: each user’s nativeLanguage maps to exactly one LanguageInsight
+  /// one-to-one: each user's nativeLanguage maps to exactly one LanguageInsight
   languageInsight    LanguageInsight? @relation(name: "UserNativeInsight", fields: [nativeLanguage], references: [languageId])
   preferredLanguages String[]
   learningGoals      String?
   timeZone           String?
   availability       Json?
+  expertiseLevel     String?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
-  uploadedAudioSamples      AudioSample[]     @relation("UploaderAudioSamples")
-  communityMatchesAsMatched CommunityMatch[]  @relation("CommunityMatchesAsMatched")
-  communityMatches          CommunityMatch[]  @relation("CommunityMatches")
-  uploadedGrammarRules      GrammarRule[]     @relation("UploaderGrammarRules")
+  uploadedAudioSamples      AudioSample[]    @relation("UploaderAudioSamples")
+  communityMatchesAsMatched CommunityMatch[] @relation("CommunityMatchesAsMatched")
+  communityMatches          CommunityMatch[] @relation("CommunityMatches")
+  uploadedGrammarRules      GrammarRule[]    @relation("UploaderGrammarRules")
   progressRecords           UserProgress[]
-  uploadedWordLists         WordList[]        @relation("UploaderWordLists")
+  uploadedWordLists         WordList[]       @relation("UploaderWordLists")
 }
 
 model Language {
-  id                String                   @id @default(uuid())
-  name              String
-  description       String?
-  region            String?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  region      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   audioSamples      AudioSample[]
   grammarRules      GrammarRule[]
@@ -127,19 +128,21 @@ model LanguageRetentionForecast {
 }
 
 model LanguageInsight {
-  id                  String    @id @default(uuid())
-  languageId          String    @unique
+  id                  String   @id @default(uuid())
+  languageId          String   @unique
   learningDifficulty  String
-  preservationStatus  String
+  preservationStatus  String // "Critical", "Endangered", "Vulnerable", "Stable"
   availableResources  Json
   activeLearnersCount Int
   nativeSpeakersCount Int
-  lastUpdated         DateTime  @default(now())
+  regionalMetrics     Json[] // Will store array of: { region: string, speakerCount: number, avgAge: number, youthSpeakerPercentage: number, communitySupport: "High"|"Medium"|"Low" }
+  vitalityTrends      Json // Will store { growthRate: number, topThreats: string[], recommendedActions: string[], outlook: "Improving"|"Stable"|"Declining" }
+  lastUpdated         DateTime @default(now())
   nextUpdate          DateTime
 
   /// back-relation only—no fields/references specified here
-  user                User?     @relation(name: "UserNativeInsight")
-  language            Language  @relation(fields: [languageId], references: [id])
+  user     User?    @relation(name: "UserNativeInsight")
+  language Language @relation(fields: [languageId], references: [id])
 
   @@index([languageId])
 }

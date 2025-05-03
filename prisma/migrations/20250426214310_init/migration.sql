@@ -116,6 +116,21 @@ CREATE TABLE "LanguageRetentionForecast" (
     CONSTRAINT "LanguageRetentionForecast_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "LanguageInsight" (
+    "id" TEXT NOT NULL,
+    "languageId" TEXT NOT NULL,
+    "learningDifficulty" TEXT NOT NULL,
+    "preservationStatus" TEXT NOT NULL,
+    "availableResources" JSONB NOT NULL,
+    "activeLearnersCount" INTEGER NOT NULL,
+    "nativeSpeakersCount" INTEGER NOT NULL,
+    "lastUpdated" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "nextUpdate" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "LanguageInsight_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_clerkUserId_key" ON "User"("clerkUserId");
 
@@ -123,10 +138,22 @@ CREATE UNIQUE INDEX "User_clerkUserId_key" ON "User"("clerkUserId");
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_nativeLanguage_key" ON "User"("nativeLanguage");
+
+-- CreateIndex
 CREATE INDEX "Lesson_languageId_idx" ON "Lesson"("languageId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "LanguageRetentionForecast_languageId_key" ON "LanguageRetentionForecast"("languageId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "LanguageInsight_languageId_key" ON "LanguageInsight"("languageId");
+
+-- CreateIndex
+CREATE INDEX "LanguageInsight_languageId_idx" ON "LanguageInsight"("languageId");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_nativeLanguage_fkey" FOREIGN KEY ("nativeLanguage") REFERENCES "LanguageInsight"("languageId") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "WordList" ADD CONSTRAINT "WordList_languageId_fkey" FOREIGN KEY ("languageId") REFERENCES "Language"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -163,3 +190,6 @@ ALTER TABLE "CommunityMatch" ADD CONSTRAINT "CommunityMatch_userId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "LanguageRetentionForecast" ADD CONSTRAINT "LanguageRetentionForecast_languageId_fkey" FOREIGN KEY ("languageId") REFERENCES "Language"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "LanguageInsight" ADD CONSTRAINT "LanguageInsight_languageId_fkey" FOREIGN KEY ("languageId") REFERENCES "Language"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

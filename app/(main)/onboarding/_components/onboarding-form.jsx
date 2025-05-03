@@ -1,5 +1,5 @@
 "use client";
-
+import { RainbowButton } from "@/components/ui/rainbow-button"
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFormContext } from "react-hook-form";
@@ -38,8 +38,6 @@ import { onboardingSchema } from "@/app/lib/schema";
 import { updateUser } from "@/actions/user";
 import useFetch from "@/hooks/use-fetch";
 
-
-
 const OnboardingForm = ({ languages }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -66,12 +64,12 @@ const OnboardingForm = ({ languages }) => {
     },
   });
 
-// This hook handles the user update API call
-// - loading: boolean indicating if update is in progress
-// - fn: function to call the updateUser API
-// - data: response data from successful update
+  // This hook handles the user update API call
+  // - loading: boolean indicating if update is in progress
+  // - fn: function to call the updateUser API
+  // - data: response data from successful update
 
-const {
+  const {
     loading: updateLoading,
     fn: updateUserFn,
     data: updateResult,
@@ -82,14 +80,13 @@ const {
   // - Shows a success toast notification
   // - Redirects user to dashboard
   // - Refreshes the router to ensure latest data is displayed
-useEffect(() => {
-  if (updateResult?.success && !updateLoading) {
-    toast.success("Profile updated successfully!");
-    router.push("/dashboard");
-    router.refresh();
-  }
-}, [updateResult, updateLoading]);
-
+  useEffect(() => {
+    if (updateResult?.success && !updateLoading) {
+      toast.success("Profile updated successfully!");
+      router.push("/dashboard");
+      router.refresh();
+    }
+  }, [updateResult, updateLoading]);
 
   // async function onSubmit(values) {
   //   try {
@@ -107,7 +104,7 @@ useEffect(() => {
 
   const onSubmit = async (values) => {
     console.log(values);
-    
+
     try {
       const formattedLanguage = `${values.nativeLanguage}-${values.subdialect
         .toLowerCase()
@@ -132,7 +129,6 @@ useEffect(() => {
   //     )),
   //   [languages]
   // );
-
 
   return (
     <div className="flex items-center justify-center bg-background">
@@ -359,7 +355,15 @@ useEffect(() => {
                 </p>
               )}
             </div>
- <Button type="submit" className="w-full" disabled={updateLoading}>
+            <RainbowButton type="submit" className="w-full" disabled={updateLoading}>{updateLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Complete Profile"
+              )}</RainbowButton>
+            {/* <Button type="submit" className="w-full" disabled={updateLoading}>
               {updateLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -368,7 +372,7 @@ useEffect(() => {
               ) : (
                 "Complete Profile"
               )}
-            </Button>
+            </Button> */}
             {/* --------------------------------------availability ------------------------------- */}
           </form>
           {/* </Form> */}

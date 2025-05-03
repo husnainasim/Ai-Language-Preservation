@@ -24,7 +24,7 @@ export async function updateUser(data) {
   // }
 
   // Find the user in our database using their Clerk ID
- 
+
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
     // include: {
@@ -41,6 +41,7 @@ export async function updateUser(data) {
   }
 
   try {
+    // A transaction ensures that all these operations complete successfully, or none of them do (they are rolled back if any step fails). This maintains data consistency.
     // Start a transaction to handle both operations
     const result = await db.$transaction(
       async (tx) => {
@@ -52,75 +53,91 @@ export async function updateUser(data) {
         //   data.nativeLanguage !== user.nativeLanguage
         // ) {
         //   // First verify the language exists
-        //   const language = await tx.language.findUnique({
+        let language = await tx.language.findUnique({
+          where: {
+            id: data.nativeLanguage,
+          },
+        });
+
+        if (!language) {
+          try {
+            language = await tx.language.create({
+              data: {
+                id: data.nativeLanguage,
+                name: data.nativeLanguage, // or map to a proper display name
+                // nativeName: data.nativeLanguage,
+                // region: data.nativeLanguage,
+                // description: data.nativeLanguage,
+                // speakers: data.nativeLanguage
+              },
+            });
+          } catch (error) {
+            console.error("Error finding language:", error);
+            throw error;
+          }
+        }
+
+        // Then check if language insights exist
+        languageInsight = await tx.languageInsight.findUnique({
+          where: {
+            languageId: data.nativeLanguage,
+          },
+        });
+
+        // If language insights don't exist, generate them
+        if (!languageInsight) {
+          try {
+            const insights = await generateAIInsights(language.name);
+
+            if (!insights) {
+              throw new Error("Failed to generate language insights");
+            }
+
+            languageInsight = await tx.languageInsight.create({
+              data: {
+                // languageId: language.id,
+                   // 2) explicit relation connect
+                language: {
+                  connect: { id: language.id },
+    },
+
+                // language: data.language,
+                ...insights,
+                // userId: user.id,
+                // learningDifficulty: insights.learningDifficulty,
+                // preservationStatus: insights.preservationStatus,
+                // availableResources: insights.availableResources,
+                // activeLearnersCount:
+                //   insights.communityMetrics.activeLearnersCount,
+                // nativeSpeakersCount:
+                //   insights.communityMetrics.nativeSpeakersCount,
+                // lastUpdated: new Date(),
+                nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Update weekly
+              },
+            });
+          } catch (insightError) {
+            console.error("Error generating insights:", insightError);
+            throw new Error(
+              `Failed to generate insights: ${insightError.message}`
+            );
+          }
+        }
+
+        // // Delete old language insights if they exist
+        // if (user.nativeLanguage && user.languageInsights?.length > 0) {
+        //   await tx.languageInsight.deleteMany({
         //     where: {
-        //       id: data.nativeLanguage,
+        //       userId: user.id,
+        //       languageId: user.nativeLanguage,
         //     },
         //   });
-
-        //   if (!language) {
-        //     throw new Error(
-        //       `Language with ID ${data.nativeLanguage} not found`
-        //     );
-        //   }
-
-          // Then check if language insights exist
-          languageInsight = await tx.languageInsight.findFirst({
-            where: {
-              languageId: data.nativeLanguage,
-            },
-          });
-
-          // If language insights don't exist, generate them
-          if (!languageInsight) {
-            try {
-              const insights = await generateAIInsights({
-                id: data.nativeLanguage, // This passes the native language ID to the generateAIInsights function
-              });
-
-              if (!insights) {
-                throw new Error("Failed to generate language insights");
-              }
-
-              languageInsight = await tx.languageInsight.create({
-                data: {
-                  // languageId: data.nativeLanguage,
-                  language: data.language,
-                  ...insights,
-                  // userId: user.id,
-                  // learningDifficulty: insights.learningDifficulty,
-                  // preservationStatus: insights.preservationStatus,
-                  // availableResources: insights.availableResources,
-                  // activeLearnersCount:
-                  //   insights.communityMetrics.activeLearnersCount,
-                  // nativeSpeakersCount:
-                  //   insights.communityMetrics.nativeSpeakersCount,
-                  // lastUpdated: new Date(),
-                  nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Update weekly
-                },
-              });
-            } catch (insightError) {
-              console.error("Error generating insights:", insightError);
-              throw new Error(
-                `Failed to generate insights: ${insightError.message}`
-              );
-            }
-          }
-
-          // // Delete old language insights if they exist
-          // if (user.nativeLanguage && user.languageInsights?.length > 0) {
-          //   await tx.languageInsight.deleteMany({
-          //     where: {
-          //       userId: user.id,
-          //       languageId: user.nativeLanguage,
-          //     },
-          //   });
-          // }
+        // }
         // }
 
         // Prepare update data with type safety
         const updateData = {
           ...(data.role && { role: data.role }),
+          ...(data.name && { name: data.name }),
           ...(data.nativeLanguage && { nativeLanguage: data.nativeLanguage }),
           ...(data.preferredLanguages && {
             preferredLanguages: data.preferredLanguages,
@@ -128,7 +145,7 @@ export async function updateUser(data) {
           ...(data.learningGoals && { learningGoals: data.learningGoals }),
           ...(data.bio && { bio: data.bio }),
           ...(data.timeZone && { timeZone: data.timeZone }),
-          ...(data.availability && { availability: data.availability }),
+          ...(data.expertiseLevel && { expertiseLevel: data.expertiseLevel }),
           updatedAt: new Date(),
         };
 
@@ -153,7 +170,12 @@ export async function updateUser(data) {
     );
 
     revalidatePath("/");
-    return result.user;
+    // return result.updatedUser;
+    return {
+      success: true,
+      user: result.updatedUser,
+      languageInsight: result.languageInsight,
+    };
   } catch (error) {
     console.error("Error updating user:", error);
     if (error.code === "P2002") {
@@ -167,9 +189,7 @@ export async function updateUser(data) {
 }
 
 export async function getUserOnboardingStatus() {
-  // Get the authenticated user's ID from Clerk
   const { userId } = await auth();
-  // If no user ID exists, user is not authenticated
   if (!userId) throw new Error("Unauthorized");
 
   try {
@@ -180,11 +200,24 @@ export async function getUserOnboardingStatus() {
       select: {
         role: true,
         nativeLanguage: true,
+        name: true,
+        bio: true,
       },
     });
+
     if (!user) throw new Error("User not found");
+
+    // Consider a user onboarded if they have the essential fields filled out
+    const isOnboarded = !!(
+      user.role &&
+      user.nativeLanguage &&
+      user.name &&
+      user.bio
+    );
+
     return {
-      isOnboarded: !!(user?.role && user?.nativeLanguage), // User needs both role and native language to be considered onboarded
+      isOnboarded,
+      user,
     };
   } catch (error) {
     console.error("Error checking onboarding status:", error.message);
@@ -255,4 +288,3 @@ export async function getUserMatches() {
     throw new Error("Failed to fetch matches");
   }
 }
-
