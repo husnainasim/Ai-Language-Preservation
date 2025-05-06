@@ -40,7 +40,7 @@ This open-source platform enables community linguists and learners to collaborat
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/ai-language-preservation.git
+git clone [https://github.com/yourusername/ai-language-preservation.git](https://github.com/husnainasim/Ai-Language-Preservation.git)
 cd ai-language-preservation
 ```
 
