@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI‑Driven Endangered Language Revitalization Toolkit
 
-## Getting Started
+Empowering communities to preserve, teach, and revitalize endangered languages with AI-generated lessons, adaptive learning, and community-driven practice.
 
-First, run the development server:
+---
+
+## 🚀 Overview
+
+This open-source platform enables community linguists and learners to collaboratively upload language data, generate interactive lessons, and track progress. The toolkit leverages AI to create engaging, adaptive learning experiences and fosters community practice for language preservation.
+
+---
+
+## ✨ Key Features
+
+- **Secure, Role-Based Access**: Powered by Clerk (Linguist, Learner roles)
+- **Language Data Upload**: Word lists, grammar rules, audio samples
+- **AI-Generated Lessons**: Flashcards, pronunciation drills, story-based dialogues
+- **Adaptive Learning**: Monitors progress, adjusts difficulty, recommends practice partners
+- **Community Practice**: Connects learners for collaborative sessions
+- **Reminders & Recommendations**: Inngest-powered notifications and lesson updates
+- **Progress Analytics**: Visualize retention and receive targeted reinforcement
+- **Modern UI**: Built with Tailwind CSS and Shadcn UI
+
+---
+
+## 🛠️ Tech Stack
+
+- **Next.js** (App Router, SSR/SSG)
+- **React 19**
+- **Prisma** (PostgreSQL or SQLite)
+- **Clerk** (Authentication & User Management)
+- **Gemini API** (AI lesson generation)
+- **Inngest** (Background jobs, reminders)
+- **Tailwind CSS** + **Shadcn UI** (UI components)
+
+---
+
+## ⚡ Getting Started
+
+### 1. Clone the repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/yourusername/ai-language-preservation.git
+cd ai-language-preservation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+# or
+npm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Set up environment variables
 
-## Learn More
+Create a `.env` file in the root directory. Example:
 
-To learn more about Next.js, take a look at the following resources:
+```env
+DATABASE_URL=postgresql://user:password@localhost:5432/yourdb
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+GEMINI_API_KEY=your_gemini_api_key
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/onboarding
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Set up the database
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npx prisma migrate dev --name init
+```
 
-## Deploy on Vercel
+### 5. Run the development server
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+pnpm dev
+# or
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Visit [http://localhost:3000](http://localhost:3000) to view the app.
+
+---
+
+## 🧑‍💻 Contributing
+
+1. Fork the repo and create your branch: `git checkout -b feature/your-feature`
+2. Make your changes and commit: `git commit -am 'Add new feature'`
+3. Push to your fork: `git push origin feature/your-feature`
+4. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 🙏 Acknowledgements
+
+- Community linguists and language activists
+- Open-source contributors
+- [Clerk](https://clerk.com/), [Prisma](https://prisma.io/), [Inngest](https://www.inngest.com/), [Gemini API](https://ai.google.dev/gemini-api)
